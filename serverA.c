@@ -1,6 +1,6 @@
 /*
   Author: Muqi Zhang
-  Date: Dec 9 2024
+  Date: Dec 8 2024
 */
 
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #include <netdb.h> // Required for addrinfo, getaddrinfo, freeaddrinfo
 #include <errno.h> // Required for errno handling and error codes
 
-#define MAX_LINE 1024
+#define MAX_LINE 948
 #define MAX_DEPARTMENTS 10
 #define CAMPUS_SERVER_PORT "31575"
 #define MAIN_SERVER_PORT "34575"
@@ -68,37 +68,6 @@ void parseData(const char* filename) {
 }
 
 // Function to send department list to the Main Server
-/*void sendDepartmentList(const char* server_ip) {
-    int sockfd;
-    struct addrinfo server_addr;
-
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-//    server_addr.sin_port = htons(CAMPUS_SERVER_PORT);
-    server_addr.ai_socktype = SOCK_DGRAM;
-    inet_pton(AF_INET, server_ip, &server_addr.sin_addr);
-
-    // Create the department list message
-    char message[MAX_LINE] = {0};
-    for (int i = 0; i < department_count; i++) {
-        strcat(message, departments[i].name);
-        if (i < department_count - 1) {
-            strcat(message, ",");
-        }
-    }
-
-    // Send the message
-    sendto(sockfd, message, strlen(message), 0, (const struct sockaddr*)&server_addr, sizeof(server_addr));
-    printf("Server A has sent a department list to Main Server.\n");
-
-    close(sockfd);
-}*/
 void sendDepartmentList(const char *main_server_ip) {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
@@ -151,26 +120,41 @@ void sendDepartmentList(const char *main_server_ip) {
 
 // Helper function to handle queries
 void handleAvailability(const char *room_type, char* response) {
-    int total_available = 0;
+    int total_available = 0, found = 0;
     char available_buildings[MAX_LINE] = {0};
 
-    for (int i = 0; i < department_count; i++) {
-        for (int j = 0; j < departments[i].room_count; j++) {
-            Room room = departments[i].rooms[j];
-            if (strcmp(room.type, room_type) == 0 && room.availability > 0) {
-                total_available += room.availability;
-                char temp[50];
-                sprintf(temp, "%d,", room.building_id);
-                strcat(available_buildings, temp);
-            }
+    for (int j = 0; j < departments[0].room_count; j++) {
+        Room room = departments[0].rooms[j];
+	if(!found && strcmp(room.type, room_type) == 0){found = 1;}
+        if (strcmp(room.type, room_type) == 0 && room.availability > 0) {
+            total_available += room.availability;
+            char temp[50];
+            sprintf(temp, "%d,", room.building_id);
+            strcat(available_buildings, temp);
         }
     }
 
+    if(!found){
+	printf("Room type %s does not available in Server A.\n", room_type);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "The client received the response from the main server using TCP over port 35575.\nNot able to find Room type.\n");
+	return;
+    }
+
+    // Remove the trailing comma if there are any buildings added
+    if (strlen(available_buildings) > 0) {
+        available_buildings[strlen(available_buildings) - 1] = '\0';
+    }
+
     if (total_available > 0) {
-        snprintf(response, MAX_LINE, "Server A found %d available rooms for %s type dormitories in Buildings: %s",
+	printf("Server A found totally %d available rooms for %s type dormitory in Building: %s\n", total_available, room_type, available_buildings);
+	printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "Campus A found %d available rooms in %s type dormitory. Their Building IDs are: %s\n",
                  total_available, room_type, available_buildings);
     } else {
-        snprintf(response, MAX_LINE, "Room type %s is not available in Server A.", room_type);
+	printf("Room %s is not available in Server A.\n", room_type);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "The client received the response from the main server using TCP over port 35575.\nThe requested room is not available.\n");
     }
 }
 
@@ -188,34 +172,47 @@ void sortRoomsByPrice(Room* rooms, int count) {
 }
 
 // Function to handle price queries
-void handlePrice(const char* room_type, char* response) {
+void handlePrice(const char *room_type, char* response) {
+//    char room_type_str[2];
+//    snprintf(room_type_str, sizeof(room_type_str), "%c", room_type);
     Room available_rooms[MAX_LINE];
-    int room_count = 0;
+    int room_count = 0, found = 0;
 
-    for (int i = 0; i < department_count; i++) {
-        for (int j = 0; j < departments[i].room_count; j++) {
-            Room room = departments[i].rooms[j];
-            if (strcmp(room.type, room_type) == 0 && room.availability >= 0) {
-                available_rooms[room_count++] = room;
-            }
+    for (int i = 0; i < departments[0].room_count; i++) {
+        Room room = departments[0].rooms[i];
+        if(!found && strcmp(room.type, room_type) == 0){found = 1;}
+        if (strcmp(room.type, room_type) == 0 && room.availability > 0) {
+            available_rooms[room_count++] = room;
         }
+    }
+
+    if(!found){
+        printf("Room type %s does not available in Server A.\n", room_type);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "The client received the response from the main server using TCP over port 35575.\nNot able to find Room type.\n");
+        return;
     }
 
     if (room_count > 0) {
         sortRoomsByPrice(available_rooms, room_count);
         snprintf(response, MAX_LINE, "Server A found room type %s with prices:\n", room_type);
+        printf("Server A found room type %s with prices:\n", room_type);
         for (int i = 0; i < room_count; i++) {
             char temp[50];
             sprintf(temp, "Building ID %d, Price $%d\n", available_rooms[i].building_id, available_rooms[i].price);
+	    printf("Building ID %d, Price $%d\n", available_rooms[i].building_id, available_rooms[i].price);
             strcat(response, temp);
         }
+	printf("Server A has sent the results to Main Server\n");
     } else {
-        snprintf(response, MAX_LINE, "Room type %s is not available in Server A.", room_type);
+	printf("Room type %s is not available in Server A.\n", room_type);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "Room type %s is not available in Server A.\n", room_type);
     }
 }
 
 // Function to handle reservation queries
-void handleReservation(const char* room_type, int building_id, char* response) {
+void handleReservation(const char *room_type, int building_id, char* response) {
     bool room_found = false;
     bool building_found = false;
 
@@ -229,12 +226,17 @@ void handleReservation(const char* room_type, int building_id, char* response) {
                     if (room->availability > 0) {
                         room->availability--;
                         snprintf(response, MAX_LINE,
-                                 "Server A found room type %s in Building ID %d.\nThis room is reserved, and availability is updated to %d.",
+                                 "Reservation is successful for Campus A Building ID %d!\n", building_id);
+			printf("Server A found room type %s in Building ID %d.\nThis room is reserved, and availability is updated to %d.\n",
                                  room_type, building_id, room->availability);
+		        printf("Server A has sent the results to Main Server\n");
                     } else {
                         snprintf(response, MAX_LINE,
-                                 "Server A found room type %s in Building ID %d.\nThis room is not available.",
+                                 "Building ID %d room type %s is not available.\n",
+                                 building_id, room_type);
+			printf("Server A found room type %s in Building ID %d.\nThis room is not available.",
                                  room_type, building_id);
+                        printf("Server A has sent the results to Main Server\n");
                     }
                     return; // Exit once the reservation is processed
                 }
@@ -242,10 +244,15 @@ void handleReservation(const char* room_type, int building_id, char* response) {
         }
     }
 
-    if (!room_found) {
-        snprintf(response, MAX_LINE, "Room type %s does not show up in Server A.", room_type);
-    } else if (!building_found) {
-        snprintf(response, MAX_LINE, "Building ID %d does not show up in Server A.", building_id);
+    if (!building_found) {
+        printf("Building ID %d does not show up in Server A.\n", building_id);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "Building ID %d does not exist.\n", building_id);
+    }
+    else if (!room_found) {
+	printf("Room type %s does not show up in Server A.\n", room_type);
+        printf("Server A has sent the results to Main Server\n");
+        snprintf(response, MAX_LINE, "Not able to find Room type.\n");
     }
 }
 
@@ -306,26 +313,24 @@ void handleQueries(const char* server_ip) {
     }
 
     while (1) {
-	printf("----waiting for main server's first msg\n");
         memset(buf, 0, sizeof(buf));
         if ((numbytes = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&their_addr, &addr_len)) == -1) {
             perror("recvfrom failed");
             continue; // Do not exit; continue receiving queries
         }
-	printf("----got msg froom ain server %s\n", buf);
 	char buffer[19];
-	memcpy(buffer, buf, 17);
-	buffer[17] = '\0';
+	memcpy(buffer, buf, 18);
+	buffer[18] = '\0';
 
-
-        char query_type[100];
+/*        char query_type[100];
 	char room_type;
-        int building_id = -1;
-	printf("---in buffer content %s\n", buffer);
-	printf("---building id %c\n", buffer[strlen(buffer)-1]);
-	printf("---room_type %c\n", buffer[0]);
-	room_type = buffer[0];
-	printf("---check 1\n");
+        int building_id = -11;*/
+char room_type[100];    // For the first string (e.g., "Deluxe")
+char query_type[100];       // For the second string (e.g., "Add")
+int building_id = -11;  // For the integer (e.g., 123)
+
+//printf("HERE!!!%c\n", buffer[strlen(buffer)-2]);
+/*	room_type = buffer[0];
 	if (strstr(buffer, "avail") != NULL) {
 		strcpy(query_type, "availability");
 	} else if (strstr(buffer, "pri") != NULL) {
@@ -333,27 +338,24 @@ void handleQueries(const char* server_ip) {
 	} else if (strstr(buffer, "res") != NULL) {
 		strcpy(query_type, "reserve");
 	}
-	printf("---check 2\n");
 	building_id = atoi(&buffer[strlen(buffer)-1]);
-	printf("---check 2.5\n");
-	if (buffer[strlen(buffer)-2] == '-') {
+	if (buffer[strlen(buffer)-3] == '-') {
 		building_id *= -1;
-	}
-	printf("---check 3\n");
+	}*/
 	
-        //sscanf(buffer, "%c %s %d", &query_type, room_type, &building_id);
+//        sscanf(buffer, "%c %s %d", &query_type, room_type, &building_id);
+sscanf(buffer, "%99s %99s %d", room_type, query_type, &building_id);
 
         char response[MAX_LINE] = {0};
-	printf("----Query type %s\n", query_type);
-	printf("----room type %c\n", room_type);
-	printf("----building id %d\n", building_id);
         if (strcmp(query_type, "availability") == 0) {
-            printf("Server A has received a query of Availability for room type %c.\n", room_type);
+            printf("Server A has received a query of Availability for room type %s.\n", room_type);
             handleAvailability(room_type, response);
         } else if (strcmp(query_type, "price") == 0) {
-            printf("Server A has received a query of Price for room type %c.\n", room_type);
+            printf("Server A has received a query of Price for room type %s.\n", room_type);
+            handlePrice(room_type, response); 
         } else if (strcmp(query_type, "reserve") == 0) {
-            printf("Server A has received a query of Reserve for room type %c at Building ID %d.\n", room_type, building_id);
+            printf("Server A has received a query of Reserve for room type %s at Building ID %d.\n", room_type, building_id);
+	    handleReservation(room_type, building_id, response);
         }
 
         if (sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&their_addr, addr_len) == -1) {

@@ -331,20 +331,20 @@ int authenticate_client(int client_fd) {
         if (authenticated) {
 	    if(!is_guest){
                 send(client_fd, "Member authentication passed\n", 22, 0);
-                printf("The main server received the authentication for %s using TCP over port %s.\n", username, MAIN_SERVER_TCP_PORT);
+                printf("The main server received the authentication for %s using TCP over port %s.\n", encrypted_username, MAIN_SERVER_TCP_PORT);
 		printf("The authentication passed.\nThe main server sent the authentication result to the client.\n");
 	    }
 	    else{
 		send(client_fd, "Guest authentication passed\n", 22, 0);
-                printf("The main server received the authentication for %s using TCP over port %s.\n", username, MAIN_SERVER_TCP_PORT);
-		printf("The main server accepts %s as a guest.\nThe main server sent the guest response to the client.\n", username);
+                printf("The main server received the authentication for %s using TCP over port %s.\n", encrypted_username, MAIN_SERVER_TCP_PORT);
+		printf("The main server accepts %s as a guest.\nThe main server sent the guest response to the client.\n", encrypted_username);
 	    }
             fclose(file);
             return 1;
         } else {
             send(client_fd, "Failed login. Invalid username or password.\n", 44, 0);
             if(!is_guest){
-                printf("The main server received the authentication for %s using TCP over port %s.\n", username, MAIN_SERVER_TCP_PORT);
+                printf("The main server received the authentication for %s using TCP over port %s.\n", encrypted_username, MAIN_SERVER_TCP_PORT);
 		printf("The authentication failed.\nThe main server sent the authentication result to the client.\n");
 	    }
         }
@@ -365,124 +365,22 @@ char find_campus_server() {
     return '\0'; // Return null character if the department doesn't exist
 }
 
-// Function to handle client queries
-/*void handle_client_query(int client_fd, int is_member) {
-    char buffer[MAXBUFLEN];
-    char room_type[5], action[20];
-    int building_id = -1;
-    char response[MAXBUFLEN];
-    char campus_server;
-    int bytes_received;
+void send_responseToClient(int is_member, char *encrypted_username, char *depar, char *action, char campusID, char *response){
+//    send(client_fd, response, strlen(response), 0);
+    printf("Main server has received the query from %s %s in department %s for the request of %s.\n",
+           is_member ? "member" : "guest", encrypted_username, depar, action);
+    printf("The main server forwarded a request of %s to Server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+    printf("The Main server has received result for the request of %s from Campus server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+    printf("The Main server has sent back the result for the request of %s to the client %s %s using TCP over port %s.\n", action, is_member ? "member" : "guest", encrypted_username, MAIN_SERVER_TCP_PORT);
+}
 
-    // Create a UDP socket for communication with campus servers
-    int udp_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_sockfd < 0) {
-        perror("UDP socket creation failed");
-        close(client_fd);
-        return;
-    }
-
-    printf("Handling client queries.\n");
-
-    while (1) {
-        // Find the campus server responsible for the current department
-        campus_server = find_campus_server();
-        if (campus_server == '\0') {
-            send(client_fd, "Department not found.\n", strlen("Department not found.\n"), 0);
-            printf("Department %s not found. Sent response to client.\n", department);
-            close(client_fd);
-            close(udp_sockfd);
-            return;
-        }
-
-        // Send "Department verified" message to the client
-        send(client_fd, "Department verified.\n", strlen("Department verified.\n"), 0);
-        printf("Sent department verification to client.\n");
-
-        // Clear buffer and receive room type and action from client
-        memset(buffer, 0, MAXBUFLEN);
-        bytes_received = recv(client_fd, buffer, MAXBUFLEN - 1, 0);
-        if (bytes_received <= 0) {
-            perror("Failed to receive room type and action");
-            close(client_fd);
-            close(udp_sockfd);
-            return;
-        }
-        buffer[bytes_received] = '\0'; // Null-terminate the input
-        sscanf(buffer, "%s %s %d", action, room_type, &building_id); // Extract room type and action
-
-        // Check action legality for the client type
-        if (!is_member && strcmp(action, "availability") != 0) {
-            send(client_fd, "Guests are only allowed to query availability.\n",
-                 strlen("Guests are only allowed to query availability.\n"), 0);
-            printf("Guest attempted illegal action: %s. Sent response to client.\n", action);
-            continue;
-        }
-
-        // Prepare the query to send to the campus server
-        snprintf(buffer, MAXBUFLEN, "%s %s %d", room_type, action, building_id);
-
-        // Resolve the address of the campus server
-        struct addrinfo hints, *servinfo, *p;
-        memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_INET;       // IPv4
-        hints.ai_socktype = SOCK_DGRAM; // UDP socket
-
-        if (getaddrinfo("127.0.0.1", CAMPUS_PORTS[campus_server - 'A'], &hints, &servinfo) != 0) {
-            perror("getaddrinfo failed");
-            close(client_fd);
-            close(udp_sockfd);
-            return;
-        }
-
-        // Send the query to the campus server
-        for (p = servinfo; p != NULL; p = p->ai_next) {
-            if (sendto(udp_sockfd, buffer, strlen(buffer), 0, p->ai_addr, p->ai_addrlen) == -1) {
-                perror("sendto failed");
-                continue;
-            }
-            break;
-        }
-
-        if (p == NULL) {
-            fprintf(stderr, "Failed to send query to campus server\n");
-            freeaddrinfo(servinfo);
-            close(client_fd);
-            close(udp_sockfd);
-            return;
-        }
-
-        printf("Sent query to Campus Server %c: %s\n", campus_server, buffer);
-        freeaddrinfo(servinfo);
-
-        // Wait for and receive the response from the campus server
-        struct sockaddr_storage their_addr;
-        socklen_t addr_len = sizeof their_addr;
-        memset(response, 0, MAXBUFLEN);
-
-        int numbytes = recvfrom(udp_sockfd, response, MAXBUFLEN - 1, 0, (struct sockaddr *)&their_addr, &addr_len);
-        if (numbytes == -1) {
-            perror("recvfrom failed");
-            close(client_fd);
-            close(udp_sockfd);
-            return;
-        }
-        response[numbytes] = '\0'; // Null-terminate the received string
-
-        printf("Received response from Campus Server %c: %s\n", campus_server, response);
-
-        // Send response to the client
-        send(client_fd, response, strlen(response), 0);
-        printf("Sent response to client: %s\n", response);
-    }
-
-    // Close the UDP socket and client connection
-    close(client_fd);
-    close(udp_sockfd);
-}*/
 void handle_client_query(int client_fd, int is_member) {
     char buffer[MAXBUFLEN];
+    char username[MAXBUFLEN];
+    char encrypted_username[MAXBUFLEN];
+    char depar[50];
     char room_type[5], action[20];
+    char campusID;
     int building_id = -1;
     char response[MAXBUFLEN];
     int bytes_received;
@@ -496,11 +394,12 @@ void handle_client_query(int client_fd, int is_member) {
         return;
     }*/
 
-    printf("Handling client queries.\n");
-
     while (1) {
         // Clear buffer and receive room type and action from client
         memset(buffer, 0, MAXBUFLEN);
+        memset(username, 0, MAXBUFLEN);
+        memset(encrypted_username, 0, MAXBUFLEN);
+        memset(depar, 0, sizeof(depar));
         bytes_received = recv(client_fd, buffer, MAXBUFLEN - 1, 0);
         if (bytes_received <= 0) {
             perror("Failed to receive room type and action");
@@ -508,54 +407,53 @@ void handle_client_query(int client_fd, int is_member) {
             //close(sockfd);
             return;
         }
-    printf("---checkpoint seg 1\n");
         buffer[bytes_received] = '\0'; // Null-terminate the input
-        sscanf(buffer, "%s %s %d", room_type, action, &building_id); // Extract room type and action
+        sscanf(buffer, "%s %s %s %s %d", username, depar, room_type, action, &building_id); // Extract room type and action
+	encrypt_string(username, encrypted_username);
+	campusID = find_campus_server();
 
-        printf("---checkpoint seg 1.1\n");
         // Prepare the query to send to the campus server
         snprintf(buffer, MAXBUFLEN, "%s %s %d%c", room_type, action, building_id, '\0');
 
+	// Determine the port based on campusID
+	int portIndex = campusID - 'A'; // Map 'A' to 0, 'B' to 1, 'C' to 2
+	const char *campusPort = CAMPUS_PORTS[portIndex];
+
         // Resolve the address of the campus server
-        printf("---checkpoint seg 1.2\n");
         struct addrinfo hints, *servinfo, *p;
         memset(&hints, 0, sizeof hints);
         hints.ai_family = AF_INET;       // IPv4
         hints.ai_socktype = SOCK_DGRAM; // UDP socket
         //hints.ai_flags = AI_PASSIVE;    // Bind to the local IP address
 
-        printf("---checkpoint seg 1.3\n");
-        if (getaddrinfo("127.0.0.1", CAMPUS_PORTS[departmentList[0].server - 'A'], &hints, &servinfo) != 0) {
+        if (getaddrinfo("127.0.0.1", campusPort, &hints, &servinfo) != 0) {
             perror("getaddrinfo failed");
             close(client_fd);
             //close(udp_sockfd);
             return;
         }
-    printf("---checkpoint seg 2\n");
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("Socket creation failed");
-            continue;
+	for (p = servinfo; p != NULL; p = p->ai_next) {
+            if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+                perror("Socket creation failed");
+                continue;
+            }
+            break;
         }
-        break;
-    }
-    printf("---checkpoint seg 3\n");
 
         // Send the query to the campus server
-    /*    for (p = servinfo; p != NULL; p = p->ai_next) {
+/*     for (p = servinfo; p != NULL; p = p->ai_next) {
             if (sendto(udp_sockfd, buffer, strlen(buffer), 0, p->ai_addr, p->ai_addrlen) < 0) {
                 perror("sendto failed");
                 continue;
             }
             break;
         }*/
-    if (sendto(sockfd, buffer, strlen(buffer), 0, p->ai_addr, p->ai_addrlen) == -1) {
-        perror("sendto failed from main to campus");
-        close(sockfd);
-        freeaddrinfo(servinfo);
-        exit(1);
-    }
-    printf("---sent data to campus server %s\n", buffer);
+        if (sendto(sockfd, buffer, strlen(buffer), 0, p->ai_addr, p->ai_addrlen) == -1) {
+            perror("sendto failed from main to campus");
+            close(sockfd);
+            freeaddrinfo(servinfo);
+            exit(1);
+        }
 
         if (p == NULL) {
             fprintf(stderr, "Failed to send query to campus server\n");
@@ -565,7 +463,6 @@ void handle_client_query(int client_fd, int is_member) {
             return;
         }
 
-        printf("Sent query to Campus Server.\n");
         freeaddrinfo(servinfo);
 
         // Wait for and receive the response from the campus server
@@ -582,11 +479,11 @@ void handle_client_query(int client_fd, int is_member) {
         }
         response[numbytes] = '\0'; // Null-terminate the received string
 
-        printf("Received response from Campus Server: %s\n", response);
+//        printf("Received response from Campus Server: %s\n", response);
 
         // Send response to the client
+	send_responseToClient(is_member, encrypted_username, depar, action, campusID, response);
         send(client_fd, response, strlen(response), 0);
-        printf("Sent response to client: %s\n", response);
     }
 
     // Close the UDP socket and client connection
@@ -658,11 +555,9 @@ int main() {
     server_addr.sin_port = htons(atoi(MAIN_SERVER_TCP_PORT));
 
 
-    int retry = 1;
     while (1) {
     int ret = 0;
     	ret = bind(tcp_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	printf("bind error %d\n", ret);
     	if (ret < 0) {
 		if (errno == EADDRINUSE) {
 			continue;
@@ -689,17 +584,19 @@ int main() {
         }
 
         // Authenticate the client
-        int is_member = authenticate_client(client_fd) == 1? 1 : 0;
-/*        if (!authenticate_client(client_fd)) {
-            printf("Authentication failed. Retrying...\n");
-            close(client_fd);
-            continue;
-        }*/
+/*        int is_member = authenticate_client(client_fd) == 1? 1 : 0;
 
         // Handle client queries
-//        char buffer[MAXBUFLEN];
-//        recv(client_fd, buffer, MAXBUFLEN, 0); // Receive query
-        handle_client_query(client_fd, is_member);
+        handle_client_query(client_fd, is_member);*/
+    if (!fork()) { // Child process
+        close(tcp_sockfd); // Child does not need the listening socket
+        int is_member = authenticate_client(client_fd); // Authenticate client
+        handle_client_query(client_fd, is_member); // Handle the client's queries
+        close(client_fd); // Clean up
+        exit(0); // Exit the child process
+    }
+
+    close(client_fd); // Parent closes client socket and continues
     }
 
     // Cleanup
