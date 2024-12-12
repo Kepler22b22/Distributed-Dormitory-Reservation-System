@@ -15,6 +15,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 // Define constants
 #define MAIN_SERVER_UDP_PORT "34575"
@@ -28,6 +30,12 @@
 const char *CAMPUS_PORTS[] = {"31575", "32575", "33575"};
 const char *CAMPUS_SERVERS[] = {"ServerA", "ServerB", "ServerC"};
 char department[50];
+
+void sigchld_handler(int s){
+   int saved_errno = errno;
+   while (waitpid(-1, NULL, WNOHANG) > 0);
+   errno = saved_errno;
+}
 
 // Structure for room details
 typedef struct {
@@ -333,14 +341,18 @@ int authenticate_client(int client_fd) {
                 send(client_fd, "Member authentication passed\n", 22, 0);
                 printf("The main server received the authentication for %s using TCP over port %s.\n", encrypted_username, MAIN_SERVER_TCP_PORT);
 		printf("The authentication passed.\nThe main server sent the authentication result to the client.\n");
+                fclose(file);
+                return 1;
 	    }
 	    else{
 		send(client_fd, "Guest authentication passed\n", 22, 0);
                 printf("The main server received the authentication for %s using TCP over port %s.\n", encrypted_username, MAIN_SERVER_TCP_PORT);
 		printf("The main server accepts %s as a guest.\nThe main server sent the guest response to the client.\n", encrypted_username);
+		fclose(file);
+		return 2;
 	    }
-            fclose(file);
-            return 1;
+//            fclose(file);
+//            return 1;
         } else {
             send(client_fd, "Failed login. Invalid username or password.\n", 44, 0);
             if(!is_guest){
@@ -366,12 +378,27 @@ char find_campus_server() {
 }
 
 void send_responseToClient(int is_member, char *encrypted_username, char *depar, char *action, char campusID, char *response){
-//    send(client_fd, response, strlen(response), 0);
-    printf("Main server has received the query from %s %s in department %s for the request of %s.\n",
-           is_member ? "member" : "guest", encrypted_username, depar, action);
-    printf("The main server forwarded a request of %s to Server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
-    printf("The Main server has received result for the request of %s from Campus server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
-    printf("The Main server has sent back the result for the request of %s to the client %s %s using TCP over port %s.\n", action, is_member ? "member" : "guest", encrypted_username, MAIN_SERVER_TCP_PORT);
+/*char temp[10];
+if (is_member == 1) {
+    strcpy(temp, "member");
+} else {
+    strcpy(temp, "guest");
+}*/
+
+//    if(is_member){
+        printf("Main server has received the query from %s %s in department %s for the request of %s.\n",
+               is_member? "member" : "guest", encrypted_username, depar, action);
+        printf("The main server forwarded a request of %s to Server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+        printf("The Main server has received result for the request of %s from Campus server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+        printf("The Main server has sent back the result for the request of %s to the client %s %s using TCP over port %s.\n", action, is_member? "member" : "guest", encrypted_username, MAIN_SERVER_TCP_PORT);
+/*    }
+    else{
+        printf("Main server has received the query from %s %s in department %s for the request of %s.\n",
+               temp, encrypted_username, depar, action);
+        printf("The main server forwarded a request of %s to Server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+        printf("The Main server has received result for the request of %s from Campus server %c using UDP over port %s.\n", action, campusID, MAIN_SERVER_UDP_PORT);
+        printf("The Main server has sent back the result for the request of %s to the client %s %s using TCP over port %s.\n", action, temp, encrypted_username, MAIN_SERVER_TCP_PORT);
+    }*/
 }
 
 void handle_client_query(int client_fd, int is_member) {
@@ -495,6 +522,15 @@ void handle_client_query(int client_fd, int is_member) {
 int main() {
     printf("Main server is up and running.\n");
 
+    struct sigaction sa;
+    sa.sa_handler = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if(sigaction(SIGCHLD, &sa, NULL) == -1){
+       perror("sigaction");
+       exit(1);
+    }
+
     // Step 1: Send wake-up messages to campus servers
     for (int i = 0; i < CAMPUS_SERVER; i++) {
         send_udp_message("wake-up", CAMPUS_PORTS[i], CAMPUS_SERVERS[i]);
@@ -554,9 +590,8 @@ int main() {
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(atoi(MAIN_SERVER_TCP_PORT));
 
-
     while (1) {
-    int ret = 0;
+	int ret = 0;
     	ret = bind(tcp_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     	if (ret < 0) {
 		if (errno == EADDRINUSE) {
@@ -590,7 +625,7 @@ int main() {
         handle_client_query(client_fd, is_member);*/
     if (!fork()) { // Child process
         close(tcp_sockfd); // Child does not need the listening socket
-        int is_member = authenticate_client(client_fd); // Authenticate client
+        int is_member = authenticate_client(client_fd) == 1? 1 : 0; // Authenticate client
         handle_client_query(client_fd, is_member); // Handle the client's queries
         close(client_fd); // Clean up
         exit(0); // Exit the child process

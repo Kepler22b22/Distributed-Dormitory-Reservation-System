@@ -4,8 +4,7 @@ Student ID: 6788977575
 
 SUCCESSFULLY RUN IN Ubuntu 22.04!
 Note:
-Sometimes the UDP is not that reliable, might need to try boot-up more than once.
-But sometimes, during my test, it can only handle one client; If this occurs, please try "make clean" or press "ctrl+c" to kill all and wait for a while. This only happens very infrequently. 
+Sometimes the UDP is not that reliable, maybe try not to boot-up main server too fast after booting up campus. Or maybe need to boot up more than once(shouldn't be more than 3 times). 
 I guess the reason for the above two senario is UDP is not reliable, and I didn't write all the check conditions?
 
 Reference: 

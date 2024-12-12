@@ -121,9 +121,7 @@ void sendDepartmentList(const char *main_server_ip) {
 // Helper function to handle queries
 void handleAvailability(const char *room_type, char* response) {
     int total_available = 0, found = 0;
-    char available_buildings[MAX_LINE] = {0};
-//    char room_type_str[2];
-//    snprintf(room_type_str, sizeof(room_type_str), "%c", room_type);
+    char available_buildings[100] = {0};
 
     for (int j = 0; j < departments[0].room_count; j++) {
         Room room = departments[0].rooms[j];
