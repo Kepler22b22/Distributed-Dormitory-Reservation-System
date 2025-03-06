@@ -67,7 +67,6 @@
 
         ├── client.cpp            # Client program
 
-
         ├── servermain.cpp        # Main Server handling authentication and coordination
 
         ├── serverA.cpp           # Campus Server A
@@ -90,15 +89,15 @@
 
 * Technologies Used
 
-(1) C/C++ (for socket programming)
+    · C/C++ (for socket programming)
 
-(2) UNIX Sockets (TCP, UDP)
+    · UNIX Sockets (TCP, UDP)
 
-(3) Multi-threading / Process Forking (for handling concurrent requests)
+    · Multi-threading / Process Forking (for handling concurrent requests)
 
-(4) Encryption & Decryption (for user authentication)
+    · Encryption & Decryption (for user authentication)
 
-(5) Data Structures (Maps, Lists for managing dormitory records)
+    · Data Structures (Maps, Lists for managing dormitory records)
 
 * Acknowledgment
 
