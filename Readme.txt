@@ -4,34 +4,34 @@
 
 * Overview
 
-This repository contains the implementation of a Student Dormitory Reservation System using UNIX socket programming. The project is part of the EE450 Computer Networks course (Fall 2024, Part 3) and demonstrates inter-process communication (IPC) using TCP and UDP sockets.
+   This repository contains the implementation of a Student Dormitory Reservation System using UNIX socket programming. The project is part of the EE450 Computer Networks course (Fall 2024, Part 3) and demonstrates inter-process communication (IPC) using TCP and UDP sockets.
 
 The system is designed to efficiently manage student housing reservations across multiple campuses using a client-server architecture. It enables students to search for room availability, check prices, and make reservations through a structured network of servers.
 
 * Architecture
 
-The project consists of six main components:
+   The project consists of six main components:
 
-1. Client: Handles user interaction, allowing students to log in as a Member or Guest to search for dormitory availability or make reservations.
-2. Main Server: Authenticates users and acts as a central hub, forwarding client requests to the correct Campus Server.
-3. Campus Servers (A, B, C): Store dormitory data for different campuses and process queries related to room availability, pricing, and reservations.
-4. Data Files: Store encrypted user login credentials (login.txt) and dormitory details (dataA.txt, dataB.txt, dataC.txt).
+      1. Client: Handles user interaction, allowing students to log in as a Member or Guest to search for dormitory availability or make reservations.
+      2. Main Server: Authenticates users and acts as a central hub, forwarding client requests to the correct Campus Server.
+      3. Campus Servers (A, B, C): Store dormitory data for different campuses and process queries related to room availability, pricing, and reservations.
+      4. Data Files: Store encrypted user login credentials (login.txt) and dormitory details (dataA.txt, dataB.txt, dataC.txt).
 
 * Features
 
-✅ TCP and UDP Socket Communication
+   ✅ TCP and UDP Socket Communication
 
-✅ User Authentication with Encrypted Credentials
+   ✅ User Authentication with Encrypted Credentials
 
-✅ Multi-threaded or Multi-process Architecture
+   ✅ Multi-threaded or Multi-process Architecture
 
-✅ Search for Room Availability by Type (Single, Double, Triple)
+   ✅ Search for Room Availability by Type (Single, Double, Triple)
 
-✅ Sort Rooms by Price (Members Only)
+   ✅ Sort Rooms by Price (Members Only)
 
-✅ Reserve a Room (Members Only)
+   ✅ Reserve a Room (Members Only)
 
-✅ Dynamic Handling of Requests and Responses
+   ✅ Dynamic Handling of Requests and Responses
 
 * Communication Flow
 
