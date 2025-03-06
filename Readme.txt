@@ -66,6 +66,7 @@ The project consists of six main components:
 📂 EE450_Project
 
  ├── client.cpp            # Client program
+ 
 
  ├── servermain.cpp        # Main Server handling authentication and coordination
 
