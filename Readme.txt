@@ -35,9 +35,9 @@ The project consists of six main components:
 
 * Communication Flow
 
-· Clients communicate with the Main Server via TCP.
-· The Main Server interacts with Campus Servers using UDP.
-· Campus Servers respond with dormitory availability and reservation updates.
+(1) Clients communicate with the Main Server via TCP.
+(2) The Main Server interacts with Campus Servers using UDP.
+(3) Campus Servers respond with dormitory availability and reservation updates.
 
 * How to Run
 
@@ -66,7 +66,7 @@ The project consists of six main components:
 📂 EE450_Project
 
  ├── client.cpp            # Client program
- 
+
 
  ├── servermain.cpp        # Main Server handling authentication and coordination
 
@@ -90,15 +90,15 @@ The project consists of six main components:
 
 * Technologies Used
 
-· C/C++ (for socket programming)
+(1) C/C++ (for socket programming)
 
-· UNIX Sockets (TCP, UDP)
+(2) UNIX Sockets (TCP, UDP)
 
-· Multi-threading / Process Forking (for handling concurrent requests)
+(3) Multi-threading / Process Forking (for handling concurrent requests)
 
-· Encryption & Decryption (for user authentication)
+(4) Encryption & Decryption (for user authentication)
 
-· Data Structures (Maps, Lists for managing dormitory records)
+(5) Data Structures (Maps, Lists for managing dormitory records)
 
 * Acknowledgment
 
