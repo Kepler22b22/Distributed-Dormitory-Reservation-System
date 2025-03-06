@@ -6,7 +6,7 @@
 
    This repository contains the implementation of a Student Dormitory Reservation System using UNIX socket programming. The project is part of the EE450 Computer Networks course (Fall 2024, Part 3) and demonstrates inter-process communication (IPC) using TCP and UDP sockets.
 
-The system is designed to efficiently manage student housing reservations across multiple campuses using a client-server architecture. It enables students to search for room availability, check prices, and make reservations through a structured network of servers.
+    The system is designed to efficiently manage student housing reservations across multiple campuses using a client-server architecture. It enables students to search for room availability, check prices, and make reservations through a structured network of servers.
 
 * Architecture
 
@@ -19,19 +19,19 @@ The system is designed to efficiently manage student housing reservations across
 
 * Features
 
-   (1) TCP and UDP Socket Communication
+   ✅ TCP and UDP Socket Communication
 
-   (2) User Authentication with Encrypted Credentials
+   ✅ User Authentication with Encrypted Credentials
 
-   (3) Multi-threaded or Multi-process Architecture
+   ✅ Multi-threaded or Multi-process Architecture
 
-   (4) Search for Room Availability by Type (Single, Double, Triple)
+   ✅ Search for Room Availability by Type (Single, Double, Triple)
 
-   (5) Sort Rooms by Price (Members Only)
+   ✅ Sort Rooms by Price (Members Only)
 
-   (6) Reserve a Room (Members Only)
+   ✅ Reserve a Room (Members Only)
 
-   (7) Dynamic Handling of Requests and Responses
+   ✅ Dynamic Handling of Requests and Responses
 
 * Communication Flow
 
@@ -63,30 +63,30 @@ The system is designed to efficiently manage student housing reservations across
 
 * File Features: 
 
-📂 EE450_Project
+    📂 EE450_Project
 
- ├── client.cpp            # Client program
+        ├── client.cpp            # Client program
 
 
- ├── servermain.cpp        # Main Server handling authentication and coordination
+        ├── servermain.cpp        # Main Server handling authentication and coordination
 
- ├── serverA.cpp           # Campus Server A
+        ├── serverA.cpp           # Campus Server A
 
- ├── serverB.cpp           # Campus Server B
+        ├── serverB.cpp           # Campus Server B
 
- ├── serverC.cpp           # Campus Server C
+        ├── serverC.cpp           # Campus Server C
 
- ├── login.txt             # Encrypted login credentials
+        ├── login.txt             # Encrypted login credentials
 
- ├── dataA.txt             # Dormitory data for Campus A
+        ├── dataA.txt             # Dormitory data for Campus A
 
- ├── dataB.txt             # Dormitory data for Campus B
+        ├── dataB.txt             # Dormitory data for Campus B
 
- ├── dataC.txt             # Dormitory data for Campus C
+        ├── dataC.txt             # Dormitory data for Campus C
 
- ├── Makefile              # Compilation instructions
+        ├── Makefile              # Compilation instructions
 
- ├── README.md             # Project documentation
+        ├── README.md             # Project documentation
 
 * Technologies Used
 
