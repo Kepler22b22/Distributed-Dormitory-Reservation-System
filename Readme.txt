@@ -19,19 +19,19 @@ The system is designed to efficiently manage student housing reservations across
 
 * Features
 
-   ✅ TCP and UDP Socket Communication
+   (1) TCP and UDP Socket Communication
 
-   ✅ User Authentication with Encrypted Credentials
+   (2) User Authentication with Encrypted Credentials
 
-   ✅ Multi-threaded or Multi-process Architecture
+   (3) Multi-threaded or Multi-process Architecture
 
-   ✅ Search for Room Availability by Type (Single, Double, Triple)
+   (4) Search for Room Availability by Type (Single, Double, Triple)
 
-   ✅ Sort Rooms by Price (Members Only)
+   (5) Sort Rooms by Price (Members Only)
 
-   ✅ Reserve a Room (Members Only)
+   (6) Reserve a Room (Members Only)
 
-   ✅ Dynamic Handling of Requests and Responses
+   (7) Dynamic Handling of Requests and Responses
 
 * Communication Flow
 
